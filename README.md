@@ -27,8 +27,15 @@ The source repository is public: [shashikant-birajdar/SocietyManagement](https:/
 
 Open index.html in a modern browser.
 
-## Important data and security note
+## Database setup
 
-This is a front-end prototype. Society data and login records are stored only in the current browser local storage, so they do not sync across devices or users. Clearing browser storage can erase that data. The live website and repository are public.
+The app uses Supabase Auth and the society row's `app_data` JSON field for shared society records. The browser contains only the Supabase project URL and publishable key; Row Level Security controls access.
 
-It has no shared server-side database or production-grade authentication. Do not use real passwords, payment information, or sensitive resident data until a secure backend, authentication, authorization, and backups are configured. Supabase is the recommended backend candidate; it has not yet been connected.
+If you already ran the original `supabase/schema.sql`, run `supabase/app-data-migration.sql` once in the Supabase SQL Editor to add the app data column. For a fresh project, run the updated `supabase/schema.sql` instead.
+
+In Supabase Authentication settings, add the live GitHub Pages URL (`https://shashikant-birajdar.github.io/SocietyManagement/`) to the allowed redirect URLs so email confirmation can return to the app. Registration may require email confirmation, depending on the project's Auth settings.
+
+## User accounts
+
+Society registration creates the first administrator login. The Users page can keep contact and role records, but inviting those contacts as separate authenticated logins requires a secure server-side invite function and is not enabled by this static GitHub Pages app. Passwords are never stored in society records.
+
