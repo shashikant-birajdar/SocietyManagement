@@ -1,0 +1,43 @@
+name: SocietyManagement production
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: societymanagement-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate inline JavaScript and prepare static site
+        run: |
+          python - <<'PY'
+          import re, pathlib, subprocess
+          html = pathlib.Path('index.html').read_text()
+          for i, match in enumerate(re.finditer(r'<script\b([^>]*)>(.*?)</script>', html, re.S|re.I)):
+              attrs, code = match.groups()
+              if not code.strip() or 'src=' in attrs: continue
+              p = pathlib.Path('/tmp') / ('check-' + str(i) + ('.mjs' if 'module' in attrs else '.js'))
+              p.write_text(code)
+              subprocess.run(['node','--check',str(p)],check=True)
+          PY
+          mkdir -p dist
+          cp index.html dist/
+      - name: Deploy existing Pages project
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then echo 'Missing deployment secret'; exit 1; fi
+          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo 'Configure CLOUDFLARE_ACCOUNT_ID as a repository secret'
+            exit 1
+          fi
+          npx --yes wrangler@4 pages deploy dist --project-name=societymanagement --branch=main --commit-hash="$GITHUB_SHA"
